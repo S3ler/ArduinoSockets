@@ -1,7 +1,8 @@
 #ifndef DummySocket_RADIOHEADSOCKET_LIBRARY_H
 #define DummySocket_RADIOHEADSOCKET_LIBRARY_H
 
-#include "mqtt-sn-gateway/SocketInterface.h"
+#include <SocketInterface.h>
+#include <iostream>
 
 class DummySocket : public SocketInterface {
 public:
