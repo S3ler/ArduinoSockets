@@ -1,14 +1,21 @@
-//
-// Created by bele on 17.11.17.
-//
-
 #ifndef RADIOHEADSOCKET_NRF24SOCKET_H
 #define RADIOHEADSOCKET_NRF24SOCKET_H
 
 
 #include <SocketInterface.h>
+#ifdef ARDUINO
+#include <SPI.h>
+#endif
+#include <RHReliableDatagram.h>
+#include <RH_NRF24.h>
+
+#define OWN_ADDRESS 0x01
+
+#define BROADCAST_ADDRESS 0xFF
+
 
 class NRF24Socket : public SocketInterface{
+
 public:
     bool begin() override;
 
@@ -27,6 +34,17 @@ public:
     bool send(device_address *destination, uint8_t *bytes, uint16_t bytes_len, uint8_t signal_strength) override;
 
     bool loop() override;
+
+private:
+    RH_NRF24* nrf24;
+    RHReliableDatagram* manager;
+
+    device_address broadcastAddress;
+    device_address ownAddress;
+
+    LoggerInterface *logger;
+    MqttSnMessageHandler *mqttSnMessageHandler;
+
 };
 
 
