@@ -5,12 +5,17 @@
 #ifndef GATEWAY_SOCKETINTERFACE_H
 #define GATEWAY_SOCKETINTERFACE_H
 
+#define DUMMY_GATEWAY_SOCKETINTERFACE
+
 
 #include "global_defines.h"
+
+#ifndef DUMMY_GATEWAY_SOCKETINTERFACE
 #include "MqttSnMessageHandler.h"
 #include "LoggerInterface.h"
-#include <stdint.h>
+#endif
 
+class LoggerInterface;
 class MqttSnMessageHandler;
 
 class SocketInterface {
