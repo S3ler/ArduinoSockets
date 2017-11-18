@@ -1,0 +1,14 @@
+//
+// Created by bele on 18.11.17.
+//
+
+#ifndef RADIOHEADSOCKET_ESP32UDPSOCKET_H
+#define RADIOHEADSOCKET_ESP32UDPSOCKET_H
+
+
+class ESP32UDPSocket {
+    // TODO implement me
+};
+
+
+#endif //RADIOHEADSOCKET_ESP32UDPSOCKET_H

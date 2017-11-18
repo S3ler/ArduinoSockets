@@ -1,14 +1,24 @@
-#ifndef RADIOHEADSOCKET_DUMMYSOCKET_H
-#define RADIOHEADSOCKET_DUMMYSOCKET_H
+#ifndef RADIOHEADSOCKET_RF69SOCKET_H
+#define RADIOHEADSOCKET_RF69SOCKET_H
+
 
 #include <SocketInterface.h>
-#include <iostream>
+#include <RHReliableDatagram.h>
+#include <RH_RF69.h>
 
-#warning "Compilation of the DummySocket - it has no functionality."
-// TODO rewrite for Arduino not for C++ with STD
-class DummySocket : public SocketInterface {
+#define OWN_ADDRESS 0x01
+#define WAIT_PACKET_SEND_TIMEOUT 2000
+// If you are using a high power RF69 eg RFM69HW, you *must* set a Tx power with the
+// ishighpowermodule flag - then uncomment next line
+// #define RFM69HW
+
+class RF69Socket : public SocketInterface{
 public:
     bool begin() override;
+
+    void setRf69(RH_RF69 *rf69);
+
+    void setManager(RHReliableDatagram *manager);
 
     void setLogger(LoggerInterface *logger) override;
 
@@ -27,8 +37,15 @@ public:
     bool loop() override;
 
 private:
+    RH_RF69* rf69;
+    RHReliableDatagram* manager;
+
     device_address broadcastAddress;
     device_address ownAddress;
+
+    LoggerInterface *logger;
+    MqttSnMessageHandler *mqttSnMessageHandler;
 };
 
-#endif
+
+#endif //RADIOHEADSOCKET_RF69SOCKET_H

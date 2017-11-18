@@ -75,6 +75,9 @@ bool DummySocket::send(device_address *destination, uint8_t *bytes, uint16_t byt
 }
 
 bool DummySocket::loop() {
+#ifndef GATEWAY_MQTTSNMESSAGEHANDLER_H
+#warning "Compilation without Core MQTT-SN Gateway."
+#endif
     srand(time(NULL));
     std::cout << "loop() called" << std::endl;
     std::cout << "showing random data" << std::endl;

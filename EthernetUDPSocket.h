@@ -1,22 +1,34 @@
-#ifndef RADIOHEADSOCKET_NRF24SOCKET_H
-#define RADIOHEADSOCKET_NRF24SOCKET_H
+//
+// Created by bele on 18.11.17.
+//
 
+#ifndef RADIOHEADSOCKET_ETHERNETUDPSOCKET_H
+#define RADIOHEADSOCKET_ETHERNETUDPSOCKET_H
 
+#include <cstring>
 #include <SocketInterface.h>
-#include <RHReliableDatagram.h>
-#include <RH_NRF24.h>
 
-#define OWN_ADDRESS 0x01
-#define WAIT_PACKET_SEND_TIMEOUT 200
+#ifdef ARDUINO
+#include <Ethernet.h>
+#include <EthernetUdp.h>
+#endif
 
-class NRF24Socket : public SocketInterface{
+class EthernetUDP;
+
+class Ethernet;
+
+#define MAC 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
+#define PORT 8888
+#define ETHERNET_UDP_MAX_MESSAGE_LENGTH UINT8_MAX
+
+class EthernetUDPSocket : public SocketInterface {
 
 public:
     bool begin() override;
 
-    void setNrf24(RH_NRF24 *nrf24);
+    void setEthernet(Ethernet *ethernet);
 
-    void setManager(RHReliableDatagram *manager);
+    void setEthernetUDP(EthernetUDP *ethernetUDP);
 
     void setLogger(LoggerInterface *logger) override;
 
@@ -35,16 +47,21 @@ public:
     bool loop() override;
 
 private:
-    RH_NRF24* nrf24;
-    RHReliableDatagram* manager;
+    void convertToDeviceAddress(device_address *from, IPAddress *fromIPAddress, uint16_t fromPort);
+
+
+private:
+    uint8_t mac[] = {MAC};
+
+    Ethernet *ethernet;
+    EthernetUDP *ethernetUDP;
 
     device_address broadcastAddress;
     device_address ownAddress;
 
     LoggerInterface *logger;
     MqttSnMessageHandler *mqttSnMessageHandler;
-
 };
 
 
-#endif //RADIOHEADSOCKET_NRF24SOCKET_H
+#endif //RADIOHEADSOCKET_ETHERNETUDPSOCKET_H
