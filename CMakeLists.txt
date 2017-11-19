@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(RadioHeadSocket)
+project(ArduinoSockets)
 
 set(CMAKE_CXX_STANDARD 11)
 
