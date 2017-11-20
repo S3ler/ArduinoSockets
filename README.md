@@ -2,6 +2,11 @@
 **ArduinoSockets** implementing the SocketInterfaces for **MQTT-SN Gateways** and **MQTT-SN Clients**.
 The Sockets are implemented for **transmission technologies** ([OSI-Layer](https://en.wikipedia.org/wiki/OSI_model) [1](https://en.wikipedia.org/wiki/Physical_layer)) and **transmission protocols** ([OSI-Layer ](https://en.wikipedia.org/wiki/OSI_model)[2](https://en.wikipedia.org/wiki/OSI_model#Layer_2:_Data_Link_Layer), [3](https://en.wikipedia.org/wiki/OSI_model#Layer_3:_Network_Layer), [4](https://en.wikipedia.org/wiki/OSI_model#Layer_4:_Transport_Layer)).
 
+#### Legend: 
+* &#x2705; implemented and tested
+* &#x274E; means not implemented yet - coming soon
+* &#x274C; cannot implement it
+
 ## DummySocket
 The DummySocket has no functionality.
 It only prints out messages when calling functions.
@@ -14,9 +19,8 @@ The ESP8266UDPSocket implements the SocketInterface using [WiFi](https://en.wiki
 It uses [UDP](https://en.wikipedia.org/wiki/User_Datagram_Protocol) as transmission protocol.
 ### Supported Boards and other HW
 Boards:
-* [ESP8266](https://github.com/nodemcu/nodemcu-devkit-v1.0#nodemcu-devkit-v10) (implemented)
-* [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) (not implemented yet)
-
+* [ESP8266](https://github.com/nodemcu/nodemcu-devkit-v1.0#nodemcu-devkit-v10) &#x2705;
+* [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) &#x274E;
 ### Limitations
 **None** - the ESP8266UDPSocket can join Multicast groups.
 Works only on ESP8266-Chip.
@@ -26,11 +30,11 @@ The EthernetUDPSocket implements the SocketInterface using [Ethernet](https://en
 It uses [UDP](https://en.wikipedia.org/wiki/User_Datagram_Protocol) as transmission protocol.
 ### Supported Boards and other HW
 Boards:
-* [Arduino Uno](https://store.arduino.cc/arduino-uno-rev3) (implemented)
-* [Arduino Mega](https://store.arduino.cc/arduino-mega-2560-rev3) (implemented)
-* [Arduino Nano](https://store.arduino.cc/arduino-nano) (not possible - power consumption too high)
-* [ESP8266](https://github.com/nodemcu/nodemcu-devkit-v1.0#nodemcu-devkit-v10) (could not make it work - see Limitations)
-* [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) (not implemented yet)
+* [Arduino Uno](https://store.arduino.cc/arduino-uno-rev3) &#x2705;
+* [Arduino Mega](https://store.arduino.cc/arduino-mega-2560-rev3) &#x2705;
+* [Arduino Nano](https://store.arduino.cc/arduino-nano) * &#x274C; (not possible - power consumption too high)
+* [ESP8266](https://github.com/nodemcu/nodemcu-devkit-v1.0#nodemcu-devkit-v10) * &#x274C; (could not make it work - see Limitations)
+* [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) &#x274E;
 
 Shield:
 * [Arduino Ethernet Shield V1](https://www.arduino.cc/en/Main/ArduinoEthernetShieldV1) (implemented)
@@ -44,14 +48,14 @@ The EthernetUDPSocket implements the SocketInterface using the [nRF24L01 modules
 It uses [RHDatagrams](http://www.airspayce.com/mikem/arduino/RadioHead/classRHDatagram.html) as transmission protocol.
 ### Supported Boards and other HW
 Boards:
-* [Arduino Uno](https://store.arduino.cc/arduino-uno-rev3) (implemented)
-* [Arduino Mega](https://store.arduino.cc/arduino-mega-2560-rev3) (implemented)
-* [Arduino Nano](https://store.arduino.cc/arduino-nano) (implemented)
-* [ESP8266](https://github.com/nodemcu/nodemcu-devkit-v1.0#nodemcu-devkit-v10) (implemented)
-* [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) (not implemented yet)
+* [Arduino Uno](https://store.arduino.cc/arduino-uno-rev3) &#x2705;
+* [Arduino Mega](https://store.arduino.cc/arduino-mega-2560-rev3) &#x2705;
+* [Arduino Nano](https://store.arduino.cc/arduino-nano) &#x2705;
+* [ESP8266](https://github.com/nodemcu/nodemcu-devkit-v1.0#nodemcu-devkit-v10) &#x2705;
+* [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) &#x274E;
 
 Module:
-* [nRF24L01+PCB](images/nRF24L01+PCB.jpg) (implemented)
+* [nRF24L01+PCB](images/nRF24L01+PCB.jpg) &#x2705;
 * [nRF24L01+PA+LNA](images/nRF24L01+PA+LNA.jpg) (I do not own them - not tested)
 
 ### Limitations
@@ -69,17 +73,17 @@ The RF69Socket implements the SocketInterface using [LoRa](https://www.lora-alli
 It uses [RHDatagrams](http://www.airspayce.com/mikem/arduino/RadioHead/classRHDatagram.html) as transmission protocol.
 ### Supported Boards and other HW
 Boards:
-* [Arduino Uno](https://store.arduino.cc/arduino-uno-rev3) (not implemented yet)
-* [Arduino Mega](https://store.arduino.cc/arduino-mega-2560-rev3) (not implemented yet)
-* [Arduino Nano](https://store.arduino.cc/arduino-nano) (not implemented yet)
-* [ESP8266](https://github.com/nodemcu/nodemcu-devkit-v1.0#nodemcu-devkit-v10) (not implemented yet)
-* [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) (not implemented yet)
-* [Adafruit Feather LoRa](https://www.adafruit.com/product/3078) (not implemented yet)
+* [Arduino Uno](https://store.arduino.cc/arduino-uno-rev3) &#x274E;
+* [Arduino Mega](https://store.arduino.cc/arduino-mega-2560-rev3) &#x274E;
+* [Arduino Nano](https://store.arduino.cc/arduino-nano) &#x274E;
+* [ESP8266](https://github.com/nodemcu/nodemcu-devkit-v1.0#nodemcu-devkit-v10) &#x274E;
+* [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) &#x274E;
+* [Adafruit Feather LoRa](https://www.adafruit.com/product/3078) &#x274E;
 
 Module:
-* [LoRa Shield](http://wiki.dragino.com/index.php?title=Lora_Shield) (not implemented yet)
-* [LoRa/GPS Shield](http://wiki.dragino.com/index.php?title=Lora/GPS_Shield) (not implemented yet)
-* [LoRra Bee](http://wiki.dragino.com/index.php?title=Lora_BEE) (not implemented yet)
+* [LoRa Shield](http://wiki.dragino.com/index.php?title=Lora_Shield) &#x274E;
+* [LoRa/GPS Shield](http://wiki.dragino.com/index.php?title=Lora/GPS_Shield) &#x274E;
+* [LoRra Bee](http://wiki.dragino.com/index.php?title=Lora_BEE) &#x274E;
 
 ### Limitations
 The datarate of LoRa is very low and until now it is untested how good it works with MQTT-SN.
@@ -94,7 +98,7 @@ The BLESocket implements the SocketInterface using [Bluetooth LE](https://en.wik
 It uses [GATT operations](https://en.wikipedia.org/wiki/Bluetooth_Low_Energy#GATT_Operations) the UUID of the [Nordic Uart Service (NUS)](https://devzone.nordicsemi.com/documentation/nrf51/6.0.0/s110/html/a00066.html) as transmission protocol.
 ### Supported Boards and other HW
 Boards:
-* [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) (not implemented yet)
+* [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) &#x274E;
 
 ### Limitations
 **None** - the ESP8266UDPSocket can join Multicast groups.
