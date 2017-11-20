@@ -32,8 +32,8 @@ It uses [UDP](https://en.wikipedia.org/wiki/User_Datagram_Protocol) as transmiss
 Boards:
 * [Arduino Uno](https://store.arduino.cc/arduino-uno-rev3) &#x2705;
 * [Arduino Mega](https://store.arduino.cc/arduino-mega-2560-rev3) &#x2705;
-* [Arduino Nano](https://store.arduino.cc/arduino-nano) * &#x274C; (not possible - power consumption too high)
-* [ESP8266](https://github.com/nodemcu/nodemcu-devkit-v1.0#nodemcu-devkit-v10) * &#x274C; (could not make it work - see Limitations)
+* [Arduino Nano](https://store.arduino.cc/arduino-nano) &#x274C; (not possible - power consumption too high)
+* [ESP8266](https://github.com/nodemcu/nodemcu-devkit-v1.0#nodemcu-devkit-v10) &#x274C; (could not make it work - see Limitations)
 * [ESP32](https://github.com/espressif/arduino-esp32#esp32dev-board-pinmap) &#x274E;
 
 Shield:
