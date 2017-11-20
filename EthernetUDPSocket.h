@@ -2,33 +2,22 @@
 // Created by bele on 18.11.17.
 //
 
-#ifndef RADIOHEADSOCKET_ETHERNETUDPSOCKET_H
-#define RADIOHEADSOCKET_ETHERNETUDPSOCKET_H
+#ifndef RADIOHEADSOCKET_ethernetUDPSOCKET_H
+#define RADIOHEADSOCKET_ethernetUDPSOCKET_H
 
-#include <cstring>
-#include <SocketInterface.h>
-
-#ifdef ARDUINO
 #include <Ethernet.h>
+#include <SocketInterface.h>
+#include <IPAddress.h>
 #include <EthernetUdp.h>
-#endif
 
-class EthernetUDP;
-
-class Ethernet;
-
-#define MAC 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
 #define PORT 8888
 #define ETHERNET_UDP_MAX_MESSAGE_LENGTH UINT8_MAX
 
 class EthernetUDPSocket : public SocketInterface {
-
 public:
     bool begin() override;
 
-    void setEthernet(Ethernet *ethernet);
-
-    void setEthernetUDP(EthernetUDP *ethernetUDP);
+    void setEthernetUDP(EthernetUDP * ethernetUDP);
 
     void setLogger(LoggerInterface *logger) override;
 
@@ -47,14 +36,13 @@ public:
     bool loop() override;
 
 private:
-    void convertToDeviceAddress(device_address *from, IPAddress *fromIPAddress, uint16_t fromPort);
-
+    void convertToDeviceAddress(device_address *from, IPAddress fromIPAddress, uint16_t fromPort);
+    bool handleEthernetUDPSocket();
 
 private:
-    uint8_t mac[] = {MAC};
-
-    Ethernet *ethernet;
     EthernetUDP *ethernetUDP;
+    IPAddress broadcastIPAddress;
+    uint16_t broadcastPort;
 
     device_address broadcastAddress;
     device_address ownAddress;
@@ -64,4 +52,4 @@ private:
 };
 
 
-#endif //RADIOHEADSOCKET_ETHERNETUDPSOCKET_H
+#endif //RADIOHEADSOCKET_ethernetUDPSOCKET_H

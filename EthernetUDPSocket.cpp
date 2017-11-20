@@ -11,25 +11,20 @@ bool EthernetUDPSocket::begin() {
     if (mqttSnMessageHandler == nullptr) {
         return false;
     }
-    if (ethernet == nullptr) {
-        return false;
-    }
     if (ethernetUDP == nullptr) {
         return false;
     }
-    IPAddress broadcastAddress(224, 0, 0, 0);
-    uint16_t broadcastPort = 1234;
-    convertToDeviceAddress(&broadcastAddress, &broadcastAddress, broadcastPort);
 
-    if (ethernet->begin(mac, ip)) {
-        return false;
-    }
+    broadcastIPAddress[0] = 224;
+    broadcastIPAddress[1] = 0;
+    broadcastIPAddress[2] = 0;
+    broadcastIPAddress[3] = 0;
+    broadcastPort = 1234;
+    convertToDeviceAddress(&broadcastAddress, broadcastIPAddress, broadcastPort);
+
     return ethernetUDP->begin(PORT);
 }
 
-void EthernetUDPSocket::setEthernet(Ethernet *ethernet) {
-    EthernetUDPSocket::ethernet = ethernet;
-}
 
 void EthernetUDPSocket::setEthernetUDP(EthernetUDP *ethernetUDP) {
     EthernetUDPSocket::ethernetUDP = ethernetUDP;
@@ -44,14 +39,14 @@ void EthernetUDPSocket::setMqttSnMessageHandler(MqttSnMessageHandler *mqttSnMess
 }
 
 device_address *EthernetUDPSocket::getBroadcastAddress() {
-    return &broadcastAddress;
+    return &this->broadcastAddress;
 }
 
 device_address *EthernetUDPSocket::getAddress() {
-    IPAddress ownIPAddress = ethernet->localIP();
+    IPAddress ownIPAddress = Ethernet.localIP();
     uint16_t ownPort = PORT;
-    convertToDeviceAddress(&ownAddress, &ownIPAddress, ownPort);
-    return &ownAddress;
+    convertToDeviceAddress(&this->ownAddress, ownIPAddress, ownPort);
+    return &this->ownAddress;
 }
 
 uint8_t EthernetUDPSocket::getMaximumMessageLength() {
@@ -63,22 +58,15 @@ bool EthernetUDPSocket::send(device_address *destination, uint8_t *bytes, uint16
 }
 
 bool EthernetUDPSocket::send(device_address *destination, uint8_t *bytes, uint16_t bytes_len, uint8_t signal_strength) {
-    if (destination == &broadcastAddress) {
-        IPAddress destinationIPAddress(destination->bytes[0], destination->bytes[1], destination->bytes[2],
-                                       destination->bytes[3]);
-        uint16_t destinationPort = 0;
-        memcpy(&destinationPort, &destination->bytes[4], 2);
-        ethernetUDP->beginMulticast(destinationIPAddress, destinationPort);
-        ethernetUDP->write(bytes, bytes_len);
-        ethernetUDP->endPacket();
-        return true;
-    }
 
     // convert to IPAddress and Port
-    IPAddress destinationIPAddress(destination->bytes[0], destination->bytes[1], destination->bytes[2],
+    IPAddress destinationIPAddress(destination->bytes[0],
+                                   destination->bytes[1],
+                                   destination->bytes[2],
                                    destination->bytes[3]);
     uint16_t destinationPort = 0;
     memcpy(&destinationPort, &destination->bytes[4], 2);
+
     // send Packet
     ethernetUDP->beginPacket(destinationIPAddress, destinationPort);
     ethernetUDP->write(bytes, bytes_len);
@@ -88,7 +76,13 @@ bool EthernetUDPSocket::send(device_address *destination, uint8_t *bytes, uint16
 }
 
 bool EthernetUDPSocket::loop() {
+    if (!handleEthernetUDPSocket()) {
+        return false;
+    }
+    return true;
+}
 
+bool EthernetUDPSocket::handleEthernetUDPSocket() {
     uint8_t buf_len = 0;
     uint8_t buf[ETHERNET_UDP_MAX_MESSAGE_LENGTH];
     memset(&buf, 0x0, ETHERNET_UDP_MAX_MESSAGE_LENGTH);
@@ -96,8 +90,8 @@ bool EthernetUDPSocket::loop() {
     memset(&from.bytes[0], 0x0, sizeof(device_address));
 
     uint16_t packetSize = ethernetUDP->parsePacket();
-    if (packetSize) {
 
+    if (packetSize) {
         if (packetSize > ETHERNET_UDP_MAX_MESSAGE_LENGTH) {
             // someone try to mess up the udp packet stream
             // read out the bytes and so discard the message
@@ -105,28 +99,22 @@ bool EthernetUDPSocket::loop() {
                 ethernetUDP->read(buf, ETHERNET_UDP_MAX_MESSAGE_LENGTH);
             }
             if (packetSize % ETHERNET_UDP_MAX_MESSAGE_LENGTH > 0) {
-                ethernetUDP->read(buf, packetSize % ETHERNET_UDP_MAX_MESSAGE_LENGTH);
+                ethernetUDP->read(buf, static_cast<size_t>(packetSize % ETHERNET_UDP_MAX_MESSAGE_LENGTH));
             }
             return true;
         }
-
+        uint16_t readSize = ethernetUDP->read(buf, ETHERNET_UDP_MAX_MESSAGE_LENGTH);
         IPAddress fromIPAddress = ethernetUDP->remoteIP();
-        uint16_t fromPort = ethernetUDP->remotePort();
-        buf_len = ethernetUDP->read(buf, ETHERNET_UDP_MAX_MESSAGE_LENGTH);
-        convertToDeviceAddress(&from, &fromIPAddress, fromPort);
-#ifdef GATEWAY_MQTTSNMESSAGEHANDLER_H
-        mqttSnMessageHandler->receiveData(&from, &buf);
-#elif CLIENT_MQTTSNMESSAGEHANDLER_H
-        mqttSnMessageHandler->receiveData(&from, &buf);
-#else
-#warning "Compilation without Core MQTT-SN Gateway."
-#endif
+        uint16_t fromPort = ethernetUDP->remoteIP();
+        convertToDeviceAddress(&from, fromIPAddress, fromPort);
 
+        mqttSnMessageHandler->receiveData(&from, buf);
     }
     return true;
 }
 
-void EthernetUDPSocket::convertToDeviceAddress(device_address *from, IPAddress *fromIPAddress, uint16_t fromPort) {
-    memcpy(&from->bytes[0], &fromIPAddress->uint32_t(), 4);
+
+void EthernetUDPSocket::convertToDeviceAddress(device_address *from, IPAddress fromIPAddress, uint16_t fromPort) {
+    memcpy(&from->bytes[0], &fromIPAddress[0], 4);
     memcpy(&from->bytes[4], &fromPort, 2);
 }

@@ -1,22 +1,22 @@
-#ifndef RADIOHEADSOCKET_NRF24SOCKET_H
-#define RADIOHEADSOCKET_NRF24SOCKET_H
+//
+// Created by bele on 18.11.17.
+//
 
+#ifndef RADIOHEADSOCKET_WIFIUDPSOCKET_H
+#define RADIOHEADSOCKET_WIFIUDPSOCKET_H
 
+#include <ESP8266WiFi.h>
 #include <SocketInterface.h>
-#include <RHReliableDatagram.h>
-#include <RH_NRF24.h>
+#include <WiFiUdp.h>
+#include <IPAddress.h>
+#define PORT 8888
+#define ESP8266_UDP_MAX_MESSAGE_LENGTH UINT8_MAX
 
-#define OWN_ADDRESS 0x02
-#define WAIT_PACKET_SEND_TIMEOUT 200
-
-class NRF24Socket : public SocketInterface{
-
+class ESP8266UDPSocket : public SocketInterface {
 public:
     bool begin() override;
 
-    void setNrf24(RH_NRF24 *nrf24);
-
-    void setManager(RHReliableDatagram *manager);
+    void setWiFiUDP(WiFiUDP *wiFiUDP, WiFiUDP *multicastUDP);
 
     void setLogger(LoggerInterface *logger) override;
 
@@ -35,16 +35,22 @@ public:
     bool loop() override;
 
 private:
-    RH_NRF24* nrf24;
-    RHReliableDatagram* manager;
+    void convertToDeviceAddress(device_address *from, IPAddress fromIPAddress, uint16_t fromPort);
+    bool handleWifiUDPSocket();
+    bool handleMulticastUDPSocket();
+
+private:
+    WiFiUDP *wiFiUDP;
+    IPAddress broadcastIPAddress;
+    uint16_t broadcastPort;
 
     device_address broadcastAddress;
     device_address ownAddress;
 
     LoggerInterface *logger;
     MqttSnMessageHandler *mqttSnMessageHandler;
-
+    WiFiUDP *multicastUDP;
 };
 
 
-#endif //RADIOHEADSOCKET_NRF24SOCKET_H
+#endif //RADIOHEADSOCKET_WIFIUDPSOCKET_H
