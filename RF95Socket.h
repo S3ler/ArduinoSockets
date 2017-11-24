@@ -4,19 +4,19 @@
 
 #include <SocketInterface.h>
 #include <RHReliableDatagram.h>
-#include <RH_RF69.h>
+#include <RH_RF95.h>
 
 #define OWN_ADDRESS 0x01
-#define WAIT_PACKET_SEND_TIMEOUT 2000
-// If you are using a high power RF69 eg RFM69HW, you *must* set a Tx power with the
-// ishighpowermodule flag - then uncomment next line
-// #define RFM69HW
 
-class RF69Socket : public SocketInterface{
+#define FREQUENCY 868
+#define TX_POWER_PIN 18
+#define MODEM_CONFIG_CHOICE Bw31_25Cr48Sf512
+
+class RF95Socket : public SocketInterface{
 public:
     bool begin() override;
 
-    void setRf69(RH_RF69 *rf69);
+    void setRf95(RH_RF95 *rf95);
 
     void setManager(RHReliableDatagram *manager);
 
@@ -37,7 +37,7 @@ public:
     bool loop() override;
 
 private:
-    RH_RF69* rf69;
+    RH_RF95* rf95;
     RHReliableDatagram* manager;
 
     device_address broadcastAddress;
