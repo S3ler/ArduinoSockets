@@ -1,3 +1,0 @@
-[submodule "lib/arduino-linux-abstraction"]
-	path = lib/arduino-linux-abstraction
-	url = git@github.com:S3ler/arduino-linux-abstraction.git
