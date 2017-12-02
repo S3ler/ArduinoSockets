@@ -6,8 +6,10 @@
 #endif
 
 #include <Arduino.h>
+#ifdef Arduino_h
 #include <SPI.h>
 #include <Ethernet.h>
+#endif
 
 #ifndef Arduino_h
 #include <dirent.h>
@@ -18,6 +20,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <string>
 #include <LoggerInterface.h>
 SerialLinux Serial;
 #endif
@@ -29,7 +32,6 @@ SerialLinux Serial;
 #include <RH_RF95.h>
 #include <RHReliableDatagram.h>
 
-#define PING
 
 RF95Socket socket;
 LoggerInterface logger;
@@ -55,6 +57,21 @@ uint8_t msg[] = {5, 'P', 'i', 'n', 'g'};
 void setup() {
     Serial.begin(9600);
     Serial.println("Starting");
+    Serial.print("OWN_ADDRESS: ");
+#ifndef Arduino_h
+    std::string number_str = std::to_string(OWN_ADDRESS);
+    Serial.println(number_str.c_str());
+#else
+    Serial.println(OWN_ADDRESS);
+#endif
+    Serial.print("ROLE: ");
+#ifdef PING
+    Serial.println("PING");
+#elif PONG
+    Serial.println("PONG");
+#else
+    Serial.println("UNDEFINED");
+#endif
 
 #ifndef Arduino_h
     wiringPiSetupGpio();
