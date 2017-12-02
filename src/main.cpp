@@ -2,18 +2,32 @@
 // -*- mode: C++ -*-
 
 #ifdef ESP8266
-#include <Arduino.h>
 #include <ESP8266WiFi.h>
 #endif
 
+#include <Arduino.h>
 #include <SPI.h>
-#include <LinuxLogger.h>
-#include <LoggerInterface.h>
-#include <MqttSnMessageHandler.h>
 #include <Ethernet.h>
 
+#ifndef Arduino_h
+#include <dirent.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
+#include <LoggerInterface.h>
+SerialLinux Serial;
+#endif
 
+#include <LinuxLogger.h>
+#include <MqttSnMessageHandler.h>
+#include <LinuxLogger.h>
 #include <RF95Socket.h>
+#include <RH_RF95.h>
+#include <RHReliableDatagram.h>
 
 #define PING
 
@@ -42,6 +56,10 @@ void setup() {
     Serial.begin(9600);
     Serial.println("Starting");
 
+#ifndef Arduino_h
+    wiringPiSetupGpio();
+#endif
+
     manager.setThisAddress(OWN_ADDRESS);
     socket.setRf95(&rf95);
     socket.setManager(&manager);
@@ -66,3 +84,28 @@ void setup() {
 void loop() {
     mqttSnMessageHandler.loop();
 }
+
+#ifndef Arduino_h
+bool run;
+
+/* Signal the end of the software */
+void sigint_handler(int signal) {
+    run = false;
+}
+
+
+int main(int argc, char **argv) {
+    run = true;
+
+    signal(SIGINT, sigint_handler);
+
+    setup();
+
+    while (run) {
+        loop();
+        usleep(1);
+    }
+
+    return EXIT_SUCCESS;
+}
+#endif
