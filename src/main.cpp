@@ -14,12 +14,19 @@
 
 
 #include <RF95Socket.h>
+#include <SimpleMqttSnClientTester.h>
 
 #define PING
+//#define SIMPLEMQTTSNCLIENTTESTER
 
 RF95Socket socket;
 LoggerInterface logger;
+
+#ifdef SIMPLEMQTTSNCLIENTTESTER
+SimpleMqttSnClientTester mqttSnMessageHandler;
+#else
 MqttSnMessageHandler mqttSnMessageHandler;
+#endif
 
 #ifdef ESP8266
 RH_RF95 rf95(2, 15);
