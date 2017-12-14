@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #endif
+
 #include <SPI.h>
 #include <LinuxLogger.h>
 #include <LoggerInterface.h>
@@ -12,12 +13,11 @@
 #include <Ethernet.h>
 
 
-
 #include <RF95Socket.h>
 #include <SimpleMqttSnClientTester.h>
 
 #define PING
-//#define SIMPLEMQTTSNCLIENTTESTER
+#define SIMPLEMQTTSNCLIENTTESTER
 
 RF95Socket socket;
 LoggerInterface logger;
@@ -39,11 +39,10 @@ RHReliableDatagram manager(rf95);
 #define OWN_ADDRESS 0x02
 #define PONG_ADDRESS 0x03
 device_address target_address(PONG_ADDRESS, 0, 0, 0, 0, 0);
-uint8_t msg[] = { 5, 'P', 'i', 'n', 'g' };
+uint8_t msg[] = {5, 'P', 'i', 'n', 'g'};
 #elif PONG
 #define OWN_ADDRESS 0x03
 #endif
-
 
 
 void setup() {
@@ -63,7 +62,11 @@ void setup() {
     } else {
         Serial.println("Started");
 #ifdef PING
+#ifndef SIMPLEMQTTSNCLIENTTESTER
         mqttSnMessageHandler.send(&target_address, msg, (uint16_t) msg[0]);
+#else
+        mqttSnMessageHandler.send_pingreq(&target_address);
+#endif
 #endif
     }
 }
