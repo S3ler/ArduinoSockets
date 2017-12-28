@@ -39,7 +39,7 @@ SerialLinux Serial;
 #include <RH_RF95.h>
 #include <RHReliableDatagram.h>
 
-#define PING
+//#define PING
 #define DRIVER_RH_NRF24
 #define SIMPLEMQTTSNCLIENTTESTER
 
@@ -72,12 +72,12 @@ RH_NRF24 rh_driver;
 
 RHReliableDatagram manager(rh_driver);
 
-#ifdef PING
+#if defined(PING)
 #define OWN_ADDRESS 0x05
 #define PONG_ADDRESS 0x03
 device_address target_address(PONG_ADDRESS, 0, 0, 0, 0, 0);
 uint8_t msg[] = {5, 'P', 'i', 'n', 'g'};
-#elif PONG
+#elif defined(PONG)
 #define OWN_ADDRESS 0x03
 #endif
 
@@ -93,9 +93,9 @@ void setup() {
     Serial.println(OWN_ADDRESS);
 #endif
     Serial.print("ROLE: ");
-#ifdef PING
+#if defined(PING)
     Serial.println("PING");
-#elif PONG
+#elif defined(PONG)
     Serial.println("PONG");
 #else
     Serial.println("UNDEFINED");
