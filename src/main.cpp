@@ -40,8 +40,8 @@ SerialLinux Serial;
 #include <RHReliableDatagram.h>
 
 //#define PING
-#define DRIVER_RH_NRF24
-#define SIMPLEMQTTSNCLIENTTESTER
+//#define DRIVER_RH_RF95
+//#define SIMPLEMQTTSNCLIENTTESTER
 
 RF95Socket socket;
 LoggerInterface logger;
@@ -115,6 +115,7 @@ void setup() {
     if (!rh_driver.setFrequency(FREQUENCY)) {
         Serial.println("Failure set FREQUENCY");
     }
+    Serial.println("FREQUENCY");
 #endif
 
 #ifdef TX_POWER_PIN
@@ -127,6 +128,7 @@ void setup() {
     if(!rh_driver.setModemConfig(RH_RF95::MODEM_CONFIG_CHOICE)){
         Serial.println("Failure set MODEM_CONFIG_CHOICE");
     }
+    Serial.println("MODEM_CONFIG_CHOICE");
 #endif
 #endif
 #ifdef DRIVER_RH_NRF24
