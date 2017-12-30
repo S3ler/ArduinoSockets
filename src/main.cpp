@@ -124,7 +124,7 @@ enum RECEIVE_STATUS {
 ArduinoSocketTesterStatus status = STARTING;
 RECEIVE_STATUS receive_status = RECEIVE_NONE;
 SEND_STATUS send_status = SEND_NONE;
-#define SerialBufferSize 128
+#define SerialBufferSize 1300
 char serialBuffer[SerialBufferSize];
 uint16_t serialBufferCounter = 0;
 bool lineReady = false;
@@ -154,11 +154,11 @@ bool send_receive_address();
 
 bool send_receive_data();
 
-bool send_ok();
-
 void resetReceiveBuffer();
 
 bool send_error();
+
+bool isReset(char *buffer);
 
 void setup() {
     Serial.begin(9600);
@@ -213,7 +213,7 @@ void setup() {
         send_error();
         status = ERROR;
     } else {
-        send_ok();
+        Serial.println("OK IDLE");
         status = IDLE;
     }
 
@@ -228,7 +228,6 @@ void loop() {
         if (c == '\n') {
             lineReady = true;
         } else if (serialBufferCounter == SerialBufferSize) {
-            Serial.println("serialBufferCounter overflow");
             status = PARSE_FAILURE;
         }
     }
@@ -248,6 +247,13 @@ void loop() {
             status = RECEIVE;
             receive_status = RECEIVE_NONE;
             resetSerialBuffer();
+        } else if (isReset(serialBuffer)) {
+            Serial.println("OK RESET");
+#if defined(ESP8266)
+            ESP.restart();
+#else
+// #error "Reset is not supported"
+#endif
         } else {
             status = PARSE_FAILURE;
         }
@@ -290,7 +296,7 @@ void loop() {
     if (status == RECEIVE) {
         if (receive_status == RECEIVE_NONE) {
             Serial.print("OK SEND_ADDRESS\n");
-                receive_status = SEND_ADDRESS;
+            receive_status = SEND_ADDRESS;
         } else if (receive_status == SEND_ADDRESS) {
             if (send_receive_address()) {
                 Serial.print("OK SEND_DATA\n");
@@ -310,13 +316,14 @@ void loop() {
         }
     }
     if (status == PARSE_FAILURE) {
-        Serial.print("PARSE_FAILURE ");
+        Serial.print("FAILURE PARSE_FAILURE ");
         resetSerialBuffer();
         receive_status = RECEIVE_NONE;
         send_status = SEND_NONE;
         status = IDLE;
     }
     if (status == FAILURE) {
+        Serial.print("FAILURE");
         resetSerialBuffer();
         receive_status = RECEIVE_NONE;
         send_status = SEND_NONE;
@@ -329,13 +336,16 @@ void loop() {
 
 }
 
-void resetReceiveBuffer() {
-    mqttSnMessageHandler.reset_received_buffer();
+bool isReset(char *buffer) {
+    char *token = strsep(&buffer, " ");
+    if (token == NULL) {
+        return false;
+    }
+    return memcmp(token, "RESET", strlen("RESET")) == 0;
 }
 
-bool send_ok() {
-    Serial.print("OK\n");
-    return true;
+void resetReceiveBuffer() {
+    mqttSnMessageHandler.reset_received_buffer();
 }
 
 bool send_error() {
@@ -388,8 +398,6 @@ bool parseData(char *buffer) {
             return false;
         }
         data[data_length++] = (uint8_t) number;
-        // alternative:
-        // data[data_length++] = atoi(token);
     }
     return true;
 }
@@ -398,21 +406,21 @@ bool parseAddress(char *buffer) {
     //Serial.println("parseAddress");
     char *token = strsep(&buffer, " ");
     if (token == NULL) {
-        Serial.println("token NULL");
+        //Serial.println("token NULL");
         return false;
     }
     if (memcmp(token, "ADDRESS", strlen("ADDRESS")) != 0) {
-        Serial.println("does not start with ADDRESS");
+        //Serial.println("does not start with ADDRESS");
         return false;
     }
 
     memset(&destination_address, 0x0, sizeof(device_address));
     uint16_t destination_address_length = 0;
 
-    while ((token = strsep(&buffer, " ")) != nullptr) {
+    while ((token = strsep(&buffer, " ")) != NULL) {
         long int number = 0;
         if (!parseLong(token, &number)) {
-            Serial.println("failure parsing parseLong");
+            //Serial.println("failure parsing parseLong");
             return false;
         }
         //Serial.println(number, DEC);
@@ -428,11 +436,7 @@ bool parseAddress(char *buffer) {
         }
         destination_address.bytes[destination_address_length++] = (uint8_t) number;
     }
-    if (destination_address_length != sizeof(device_address)) {
-        //Serial.println("address size no equal to device address size");
-        return false;
-    }
-    return true;
+    return destination_address_length == sizeof(device_address);
 }
 
 bool isReceived(char *buffer) {
@@ -440,10 +444,7 @@ bool isReceived(char *buffer) {
     if (token == NULL) {
         return false;
     }
-    if (memcmp(token, "RECEIVE", strlen("RECEIVE")) != 0) {
-        return false;
-    }
-    return true;
+    return memcmp(token, "RECEIVE", strlen("RECEIVE")) == 0;
 }
 
 bool isSend(char *buffer) {
@@ -451,10 +452,7 @@ bool isSend(char *buffer) {
     if (token == NULL) {
         return false;
     }
-    if (memcmp(token, "SEND", strlen("SEND")) != 0) {
-        return false;
-    }
-    return true;
+    return memcmp(token, "SEND", strlen("SEND")) == 0;
 }
 
 bool parseLong(const char *str, long *val) {
