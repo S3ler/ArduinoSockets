@@ -252,7 +252,7 @@ void loop() {
 #if defined(ESP8266)
             ESP.restart();
 #else
-// #error "Reset is not supported"
+            Serial.println("ERROR RESET_NOT_SUPPORTED");
 #endif
         } else {
             status = PARSE_FAILURE;
