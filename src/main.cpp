@@ -3,6 +3,43 @@
 
 #ifdef ESP8266
 #include <ESP8266WiFi.h>
+// FROM: https://android.googlesource.com/platform/bionic/+/6861c6f/libc/string/strsep.c Date: 30.12.1017
+/*
+ * Get next token from string *stringp, where tokens are possibly-empty
+ * strings separated by characters from delim.
+ *
+ * Writes NULs into the string at *stringp to end tokens.
+ * delim need not remain constant from call to call.
+ * On return, *stringp points past the last NUL written (if there might
+ * be further tokens), or is NULL (if there are definitely no more tokens).
+ *
+ * If *stringp is NULL, strsep returns NULL.
+ */
+char *
+strsep(char **stringp, const char *delim)
+{
+    char *s;
+    const char *spanp;
+    int c, sc;
+    char *tok;
+    if ((s = *stringp) == NULL)
+        return (NULL);
+    for (tok = s;;) {
+        c = *s++;
+        spanp = delim;
+        do {
+            if ((sc = *spanp++) == c) {
+                if (c == 0)
+                    s = NULL;
+                else
+                    s[-1] = 0;
+                *stringp = s;
+                return (tok);
+            }
+        } while (sc != 0);
+    }
+    /* NOTREACHED */
+}
 #endif
 
 #include <Arduino.h>
@@ -14,43 +51,23 @@
 
 #endif
 
-#ifndef Arduino_h
-#include <dirent.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <iostream>
-#include <chrono>
-#include <thread>
-#include <string>
+
 #include <LoggerInterface.h>
-SerialLinux Serial;
-#endif
-
-#include <RF95Socket.h>
-#include <SimpleMqttSnClientTester.h>
-
-#include <LinuxLogger.h>
-#include <MqttSnMessageHandler.h>
-#include <LinuxLogger.h>
+#include "MqttSnMessageHandler.h"
 #include <RF95Socket.h>
 #include <RH_NRF24.h>
 #include <RH_RF95.h>
 #include <RHReliableDatagram.h>
 
-//#define PING
-//#define DRIVER_RH_RF95
-//#define SIMPLEMQTTSNCLIENTTESTER
+#include <string.h>
+#include <errno.h>
+#include <limits.h>
 
 RF95Socket socket;
 LoggerInterface logger;
 
-#ifdef SIMPLEMQTTSNCLIENTTESTER
-SimpleMqttSnClientTester mqttSnMessageHandler;
-#else
+
 MqttSnMessageHandler mqttSnMessageHandler;
-#endif
 
 
 #ifdef DRIVER_RH_RF95
@@ -81,29 +98,71 @@ uint8_t msg[] = {5, 'P', 'i', 'n', 'g'};
 #define OWN_ADDRESS 0x03
 #endif
 
+enum ArduinoSocketTesterStatus {
+    STARTING,
+    IDLE,
+    SEND,
+    RECEIVE,
+    PARSE_FAILURE,
+    FAILURE,
+    ERROR
+};
+
+enum SEND_STATUS {
+    SEND_NONE,
+    AWAIT_ADDRESS,
+    AWAIT_DATA,
+    SENDING
+};
+
+enum RECEIVE_STATUS {
+    RECEIVE_NONE,
+    SEND_ADDRESS,
+    SEND_DATA,
+};
+
+ArduinoSocketTesterStatus status = STARTING;
+RECEIVE_STATUS receive_status = RECEIVE_NONE;
+SEND_STATUS send_status = SEND_NONE;
+#define SerialBufferSize 128
+char serialBuffer[SerialBufferSize];
+uint16_t serialBufferCounter = 0;
+bool lineReady = false;
+
+device_address destination_address;
+uint8_t data[64];
+uint16_t data_length = 0;
+
+
+bool isSend(char *buffer);
+
+bool isReceived(char *buffer);
+
+bool parseAddress(char *buffer);
+
+bool parseData(char *buffer);
+
+bool sendDataToAddress();
+
+void resetSendBuffer();
+
+void resetSerialBuffer();
+
+bool parseLong(const char *str, long *val);
+
+bool send_receive_address();
+
+bool send_receive_data();
+
+bool send_ok();
+
+void resetReceiveBuffer();
+
+bool send_error();
 
 void setup() {
     Serial.begin(9600);
-    Serial.println("Starting");
-    Serial.print("OWN_ADDRESS: ");
-#ifndef Arduino_h
-    std::string number_str = std::to_string(OWN_ADDRESS);
-    Serial.println(number_str.c_str());
-#else
-    Serial.println(OWN_ADDRESS);
-#endif
-    Serial.print("ROLE: ");
-#if defined(PING)
-    Serial.println("PING");
-#elif defined(PONG)
-    Serial.println("PONG");
-#else
-    Serial.println("UNDEFINED");
-#endif
-
-#ifndef Arduino_h
-    wiringPiSetupGpio();
-#endif
+    Serial.print("ArduinoSocketTester VERSION ALPHA 0.01\n");
 
 #ifdef DRIVER_RH_RF95
     // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
@@ -139,63 +198,274 @@ void setup() {
         Serial.println("Failure set DataRate250kbps, TransmitPowerm18dBm");
     }
 #endif
+
+    resetSendBuffer();
+    resetSerialBuffer();
+
+    status = STARTING;
     manager.setThisAddress(OWN_ADDRESS);
-    //socket.setRf95(&rh_driver);
     socket.setManager(&manager);
-    socket.setLogger(&logger);
-    socket.setMqttSnMessageHandler(&mqttSnMessageHandler);
+
     mqttSnMessageHandler.setLogger(&logger);
     mqttSnMessageHandler.setSocket(&socket);
 
     if (!mqttSnMessageHandler.begin()) {
-        Serial.println("Failure init MqttSnMessageHandler");
+        send_error();
+        status = ERROR;
     } else {
-        Serial.println("Started");
+        send_ok();
+        status = IDLE;
     }
-#ifdef PING
 
-#ifndef SIMPLEMQTTSNCLIENTTESTER
-    mqttSnMessageHandler.send(&target_address, msg, (uint16_t) msg[0]);
-#ifdef RH_RF95_h
-    mqttSnMessageHandler.send(&target_address, msg, (uint16_t) msg[0]);
-#endif
 
-#else
-    mqttSnMessageHandler.send_pingreq(&target_address);
-#ifdef RH_RF95_h
-    mqttSnMessageHandler.send_pingreq(&target_address);
-#endif
-
-#endif
-
-#endif
 }
+
 
 void loop() {
+    if (Serial.available() > 0) {
+        char c = Serial.read();
+        serialBuffer[serialBufferCounter++] = c;
+        if (c == '\n') {
+            lineReady = true;
+        } else if (serialBufferCounter == SerialBufferSize) {
+            Serial.println("serialBufferCounter overflow");
+            status = PARSE_FAILURE;
+        }
+    }
     mqttSnMessageHandler.loop();
-}
 
-#ifndef Arduino_h
-bool run;
+    if (status == STARTING) {
+        // init hardware components etc.
+        setup();
+    }
+    if (status == IDLE && lineReady) {
+        // parse
+        if (isSend(serialBuffer)) {
+            status = SEND;
+            send_status = SEND_NONE;
+            resetSerialBuffer();
+        } else if (isReceived(serialBuffer)) {
+            status = RECEIVE;
+            receive_status = RECEIVE_NONE;
+            resetSerialBuffer();
+        } else {
+            status = PARSE_FAILURE;
+        }
 
-/* Signal the end of the software */
-void sigint_handler(int signal) {
-    run = false;
-}
-
-
-int main(int argc, char **argv) {
-    run = true;
-
-    signal(SIGINT, sigint_handler);
-
-    setup();
-
-    while (run) {
-        loop();
-        usleep(1);
+    }
+    if (status == SEND) {
+        if (send_status == SEND_NONE) {
+            Serial.print("OK AWAIT_ADDRESS\n");
+            resetSendBuffer();
+            send_status = AWAIT_ADDRESS;
+        } else if (send_status == AWAIT_ADDRESS && lineReady) {
+            if (parseAddress(serialBuffer)) {
+                Serial.print("OK AWAIT_DATA\n");
+                resetSerialBuffer();
+                send_status = AWAIT_DATA;
+            } else {
+                status = PARSE_FAILURE;
+            }
+        } else if (send_status == AWAIT_DATA && lineReady) {
+            if (parseData(serialBuffer)) {
+                Serial.print("OK SENDING\n");
+                resetSerialBuffer();
+                send_status = SENDING;
+            } else {
+                status = PARSE_FAILURE;
+            }
+        } else if (send_status == SENDING) {
+            if (sendDataToAddress()) {
+                Serial.print("OK IDLE\n");
+                resetSendBuffer();
+                send_status = SEND_NONE;
+                status = IDLE;
+            } else {
+                Serial.print("FAILURE IDLE\n");
+                send_status = SEND_NONE;
+                status = FAILURE;
+            }
+        }
+    }
+    if (status == RECEIVE) {
+        if (receive_status == RECEIVE_NONE) {
+            Serial.print("OK SEND_ADDRESS\n");
+                receive_status = SEND_ADDRESS;
+        } else if (receive_status == SEND_ADDRESS) {
+            if (send_receive_address()) {
+                Serial.print("OK SEND_DATA\n");
+                receive_status = SEND_DATA;
+            } else {
+                status = ERROR;
+            }
+        } else if (receive_status == SEND_DATA) {
+            if (send_receive_data()) {
+                Serial.print("OK IDLE\n");
+                resetReceiveBuffer();
+                receive_status = RECEIVE_NONE;
+                status = IDLE;
+            } else {
+                status = ERROR;
+            }
+        }
+    }
+    if (status == PARSE_FAILURE) {
+        Serial.print("PARSE_FAILURE ");
+        resetSerialBuffer();
+        receive_status = RECEIVE_NONE;
+        send_status = SEND_NONE;
+        status = IDLE;
+    }
+    if (status == FAILURE) {
+        resetSerialBuffer();
+        receive_status = RECEIVE_NONE;
+        send_status = SEND_NONE;
+        status = STARTING;
+    }
+    if (status == ERROR) {
+        Serial.print("ERROR\n");
+        // TODO reset chip completely (including peripheral)
     }
 
-    return EXIT_SUCCESS;
 }
-#endif
+
+void resetReceiveBuffer() {
+    mqttSnMessageHandler.reset_received_buffer();
+}
+
+bool send_ok() {
+    Serial.print("OK\n");
+    return true;
+}
+
+bool send_error() {
+    Serial.print("ERROR\n");
+    return true;
+}
+
+bool send_receive_data() {
+    return mqttSnMessageHandler.print_received_data();
+}
+
+bool send_receive_address() {
+    return mqttSnMessageHandler.print_received_address();
+}
+
+void resetSerialBuffer() {
+    memset(serialBuffer, 0x0, sizeof(serialBuffer));
+    serialBufferCounter = 0;
+    lineReady = false;
+}
+
+void resetSendBuffer() {
+    memset(&destination_address, 0x0, sizeof(device_address));
+    memset(data, 0x0, sizeof(data));
+    data_length = 0;
+}
+
+bool sendDataToAddress() {
+    return mqttSnMessageHandler.send(&destination_address, data, data_length);
+}
+
+bool parseData(char *buffer) {
+    char *token = strsep(&buffer, " ");
+    if (token == NULL) {
+        return false;
+    }
+    if (memcmp(token, "DATA", strlen("DATA")) != 0) {
+        return false;
+    }
+
+    memset(data, 0x0, sizeof(data));
+    data_length = 0;
+
+    while ((token = strsep(&buffer, " ")) != NULL) {
+        long int number = 0;
+        if (!parseLong(token, &number)) {
+            return false;
+        }
+        if (number > UINT8_MAX || number < 0) {
+            return false;
+        }
+        data[data_length++] = (uint8_t) number;
+        // alternative:
+        // data[data_length++] = atoi(token);
+    }
+    return true;
+}
+
+bool parseAddress(char *buffer) {
+    //Serial.println("parseAddress");
+    char *token = strsep(&buffer, " ");
+    if (token == NULL) {
+        Serial.println("token NULL");
+        return false;
+    }
+    if (memcmp(token, "ADDRESS", strlen("ADDRESS")) != 0) {
+        Serial.println("does not start with ADDRESS");
+        return false;
+    }
+
+    memset(&destination_address, 0x0, sizeof(device_address));
+    uint16_t destination_address_length = 0;
+
+    while ((token = strsep(&buffer, " ")) != nullptr) {
+        long int number = 0;
+        if (!parseLong(token, &number)) {
+            Serial.println("failure parsing parseLong");
+            return false;
+        }
+        //Serial.println(number, DEC);
+
+        if (number > UINT8_MAX || number < 0) {
+            //Serial.print("number out of bounds: ");
+            //Serial.println(number, DEC);
+            return false;
+        }
+        if (destination_address_length + 1 > sizeof(device_address)) {
+            //Serial.println("address size too long");
+            return false;
+        }
+        destination_address.bytes[destination_address_length++] = (uint8_t) number;
+    }
+    if (destination_address_length != sizeof(device_address)) {
+        //Serial.println("address size no equal to device address size");
+        return false;
+    }
+    return true;
+}
+
+bool isReceived(char *buffer) {
+    char *token = strsep(&buffer, " ");
+    if (token == NULL) {
+        return false;
+    }
+    if (memcmp(token, "RECEIVE", strlen("RECEIVE")) != 0) {
+        return false;
+    }
+    return true;
+}
+
+bool isSend(char *buffer) {
+    char *token = strsep(&buffer, " ");
+    if (token == NULL) {
+        return false;
+    }
+    if (memcmp(token, "SEND", strlen("SEND")) != 0) {
+        return false;
+    }
+    return true;
+}
+
+bool parseLong(const char *str, long *val) {
+    char *temp;
+    bool rc = true;
+    errno = 0;
+    *val = strtol(str, &temp, 0);
+
+    if (temp == str || (*temp != '\0' && *temp != '\n') ||
+        ((*val == LONG_MIN || *val == LONG_MAX) && errno == ERANGE))
+        rc = false;
+
+    return rc;
+}
