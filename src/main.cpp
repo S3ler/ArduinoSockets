@@ -316,14 +316,14 @@ void loop() {
         }
     }
     if (status == PARSE_FAILURE) {
-        Serial.print("FAILURE PARSE_FAILURE ");
+        Serial.print("FAILURE PARSE_FAILURE\n");
         resetSerialBuffer();
         receive_status = RECEIVE_NONE;
         send_status = SEND_NONE;
         status = IDLE;
     }
     if (status == FAILURE) {
-        Serial.print("FAILURE");
+        Serial.print("FAILURE\n");
         resetSerialBuffer();
         receive_status = RECEIVE_NONE;
         send_status = SEND_NONE;
