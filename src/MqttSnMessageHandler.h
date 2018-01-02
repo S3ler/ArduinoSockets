@@ -39,6 +39,10 @@ public:
     device_address receive_address;
     uint8_t receive_buffer[64];
     uint16_t receive_buffer_length = 0;
+
+#if defined(DRIVER_RH_NRF24)
+    device_address tmp_address;
+#endif
 };
 
 

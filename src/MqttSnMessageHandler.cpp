@@ -31,6 +31,10 @@ void MqttSnMessageHandler::setLogger(LoggerInterface *logger) {
 }
 
 bool MqttSnMessageHandler::send(device_address *destination, uint8_t *bytes, uint16_t bytes_len) {
+#if defined(DRIVER_RH_NRF24) || defined(DRIVER_RH_RF95)
+    memset(&tmp_address, 0x0, sizeof(device_address));
+    memcpy(&tmp_address, destination, sizeof(device_address));
+#endif
     return socket->send(destination, bytes, bytes_len);
 }
 
@@ -41,6 +45,11 @@ void MqttSnMessageHandler::receiveData(device_address *address, uint8_t *bytes) 
         reset_received_buffer();
 
         memcpy(&receive_address, address, sizeof(device_address));
+#if defined(DRIVER_RH_NRF24) || defined(DRIVER_RH_RF95)
+        if (receive_address.bytes[0] == tmp_address.bytes[0]) {
+            memcpy(&receive_address, &tmp_address, sizeof(device_address));
+        }
+#endif
         receive_buffer_length = bytes[0];
         memcpy(receive_buffer, bytes, receive_buffer_length);
     }

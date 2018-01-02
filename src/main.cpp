@@ -3,6 +3,7 @@
 
 #ifdef ESP8266
 #include <ESP8266WiFi.h>
+#include <ESP8266UDPSocket.h>
 // FROM: https://android.googlesource.com/platform/bionic/+/6861c6f/libc/string/strsep.c Date: 30.12.1017
 /*
  * Get next token from string *stringp, where tokens are possibly-empty
@@ -63,7 +64,6 @@ strsep(char **stringp, const char *delim)
 #include <errno.h>
 #include <limits.h>
 
-RF95Socket socket;
 LoggerInterface logger;
 
 
@@ -73,8 +73,14 @@ MqttSnMessageHandler mqttSnMessageHandler;
 #ifdef DRIVER_RH_RF95
 #ifdef ESP8266
 RH_RF95 rh_driver(2, 15);
+RHReliableDatagram manager(rh_driver);
+RF95Socket socket;
+
 #else
 RH_RF95 rh_driver;
+RHReliableDatagram manager(rh_driver);
+RF95Socket socket;
+
 #endif
 #endif
 
@@ -82,15 +88,27 @@ RH_RF95 rh_driver;
 #ifdef ESP8266
 // TODO
 RH_NRF24 rh_driver(2, 15);
+RHReliableDatagram manager(rh_driver);
+RF95Socket socket;
+
+
 #else
 RH_NRF24 rh_driver;
+RHReliableDatagram manager(rh_driver);
+RF95Socket socket;
+
 #endif
 #endif
 
-RHReliableDatagram manager(rh_driver);
+#ifdef DRIVER_ESP8266_UDP
+const char* ssid     = "...";
+const char* password = "...";
+ESP8266UDPSocket socket;
+#endif
+
 
 #if defined(PING)
-#define OWN_ADDRESS 0x05
+#define OWN_ADDRESS 127
 #define PONG_ADDRESS 0x03
 device_address target_address(PONG_ADDRESS, 0, 0, 0, 0, 0);
 uint8_t msg[] = {5, 'P', 'i', 'n', 'g'};
@@ -134,6 +152,7 @@ uint8_t data[64];
 uint16_t data_length = 0;
 
 
+
 bool isSend(char *buffer);
 
 bool isReceived(char *buffer);
@@ -162,7 +181,9 @@ bool isReset(char *buffer);
 
 void setup() {
     Serial.begin(9600);
-    Serial.print("ArduinoSocketTester VERSION ALPHA 0.01\n");
+    Serial.print("ArduinoSocketTester VERSION ALPHA 0.01 Address ");
+    Serial.print(OWN_ADDRESS, DEC);
+    Serial.print("\n");
 
 #ifdef DRIVER_RH_RF95
     // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
@@ -188,6 +209,9 @@ void setup() {
         Serial.println("Failure set MODEM_CONFIG_CHOICE");
     }
     Serial.println("MODEM_CONFIG_CHOICE");
+
+    manager.setThisAddress(OWN_ADDRESS);
+    socket.setManager(&manager);
 #endif
 #endif
 #ifdef DRIVER_RH_NRF24
@@ -197,14 +221,27 @@ void setup() {
     if (!rh_driver.setRF(RH_NRF24::DataRate250kbps, RH_NRF24::TransmitPowerm18dBm)) {
         Serial.println("Failure set DataRate250kbps, TransmitPowerm18dBm");
     }
+
+    manager.setThisAddress(OWN_ADDRESS);
+    socket.setManager(&manager);
+#endif
+
+#ifdef DRIVER_ESP8266_UDP
+    /* Explicitly set the ESP8266 to be a WiFi-client, otherwise, it by default,
+       would try to act as both a client and an access-point and could cause
+       network-issues with your other WiFi-devices on your WiFi-network. */
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(200);
+    }
 #endif
 
     resetSendBuffer();
     resetSerialBuffer();
 
     status = STARTING;
-    manager.setThisAddress(OWN_ADDRESS);
-    socket.setManager(&manager);
+
 
     mqttSnMessageHandler.setLogger(&logger);
     mqttSnMessageHandler.setSocket(&socket);
@@ -374,6 +411,7 @@ void resetSendBuffer() {
 }
 
 bool sendDataToAddress() {
+
     return mqttSnMessageHandler.send(&destination_address, data, data_length);
 }
 
