@@ -2,6 +2,7 @@
 // -*- mode: C++ -*-
 
 #ifdef ESP8266
+
 #include <ESP8266WiFi.h>
 #include <ESP8266UDPSocket.h>
 // FROM: https://android.googlesource.com/platform/bionic/+/6861c6f/libc/string/strsep.c Date: 30.12.1017
@@ -17,8 +18,7 @@
  * If *stringp is NULL, strsep returns NULL.
  */
 char *
-strsep(char **stringp, const char *delim)
-{
+strsep(char **stringp, const char *delim) {
     char *s;
     const char *spanp;
     int c, sc;
@@ -41,6 +41,7 @@ strsep(char **stringp, const char *delim)
     }
     /* NOTREACHED */
 }
+
 #endif
 
 #include <Arduino.h>
@@ -152,7 +153,6 @@ uint8_t data[64];
 uint16_t data_length = 0;
 
 
-
 bool isSend(char *buffer);
 
 bool isReceived(char *buffer);
@@ -216,10 +216,10 @@ void setup() {
 #endif
 #ifdef DRIVER_RH_NRF24
     if (!rh_driver.init()) {
-        Serial.println("Failure init DRIVER_RH_NRF24");
+        Serial.print("Failure init DRIVER_RH_NRF24\n");
     }
     if (!rh_driver.setRF(RH_NRF24::DataRate250kbps, RH_NRF24::TransmitPowerm18dBm)) {
-        Serial.println("Failure set DataRate250kbps, TransmitPowerm18dBm");
+        Serial.print("Failure set DataRate250kbps, TransmitPowerm18dBm\n");
     }
 
     manager.setThisAddress(OWN_ADDRESS);
@@ -250,7 +250,7 @@ void setup() {
         send_error();
         status = ERROR;
     } else {
-        Serial.println("OK IDLE");
+        Serial.print("OK IDLE\n");
         status = IDLE;
     }
 
@@ -274,6 +274,17 @@ void loop() {
         // init hardware components etc.
         setup();
     }
+    if (lineReady) {
+        if (isReset(serialBuffer)) {
+            Serial.print("OK RESET\n");
+#if defined(ESP8266)
+            ESP.restart();
+#else
+            Serial.print("ERROR RESET_NOT_SUPPORTED\n");
+#endif
+        }
+    }
+
     if (status == IDLE && lineReady) {
         // parse
         if (isSend(serialBuffer)) {
@@ -285,17 +296,17 @@ void loop() {
             receive_status = RECEIVE_NONE;
             resetSerialBuffer();
         } else if (isReset(serialBuffer)) {
-            Serial.println("OK RESET");
+            Serial.print("OK RESET\n");
 #if defined(ESP8266)
             ESP.restart();
 #else
-            Serial.println("ERROR RESET_NOT_SUPPORTED");
+            Serial.print("ERROR RESET_NOT_SUPPORTED\n");
 #endif
         } else {
             status = PARSE_FAILURE;
         }
-
     }
+
     if (status == SEND) {
         if (send_status == SEND_NONE) {
             Serial.print("OK AWAIT_ADDRESS\n");
@@ -330,6 +341,7 @@ void loop() {
             }
         }
     }
+
     if (status == RECEIVE) {
         if (receive_status == RECEIVE_NONE) {
             Serial.print("OK SEND_ADDRESS\n");
@@ -352,6 +364,7 @@ void loop() {
             }
         }
     }
+
     if (status == PARSE_FAILURE) {
         Serial.print("FAILURE PARSE_FAILURE\n");
         resetSerialBuffer();
@@ -374,11 +387,14 @@ void loop() {
 }
 
 bool isReset(char *buffer) {
+    /*
     char *token = strsep(&buffer, " ");
     if (token == NULL) {
         return false;
     }
-    return memcmp(token, "RESET", strlen("RESET")) == 0;
+    */
+    return strncmp(buffer, "RESET", strlen("RESET")) == 0;
+    //return memcmp(token, "RESET", strlen("RESET")) == 0;
 }
 
 void resetReceiveBuffer() {
@@ -440,15 +456,23 @@ bool parseData(char *buffer) {
     return true;
 }
 
+//#define PARSERADDRESSDEBUG
+
 bool parseAddress(char *buffer) {
-    //Serial.println("parseAddress");
+#if defined(PARSERADDRESSDEBUG)
+    Serial.print("parseAddress\n");
+#endif
     char *token = strsep(&buffer, " ");
     if (token == NULL) {
-        //Serial.println("token NULL");
+#if defined(PARSERADDRESSDEBUG)
+        Serial.print("token NULL\n");
+#endif
         return false;
     }
     if (memcmp(token, "ADDRESS", strlen("ADDRESS")) != 0) {
-        //Serial.println("does not start with ADDRESS");
+#if defined(PARSERADDRESSDEBUG)
+        Serial.print("does not start with ADDRESS\n");
+#endif
         return false;
     }
 
@@ -458,18 +482,27 @@ bool parseAddress(char *buffer) {
     while ((token = strsep(&buffer, " ")) != NULL) {
         long int number = 0;
         if (!parseLong(token, &number)) {
-            //Serial.println("failure parsing parseLong");
+#if defined(PARSERADDRESSDEBUG)
+            Serial.print("failure parsing parseLong\n");
+#endif
             return false;
         }
-        //Serial.println(number, DEC);
-
+#if defined(PARSERADDRESSDEBUG)
+        Serial.print(number, DEC);
+        Serial.print("\n");
+#endif
         if (number > UINT8_MAX || number < 0) {
-            //Serial.print("number out of bounds: ");
-            //Serial.println(number, DEC);
+#if defined(PARSERADDRESSDEBUG)
+            Serial.print("number out of bounds: ");
+            Serial.print(number, DEC);
+            Serial.print("\n");
+#endif
             return false;
         }
         if (destination_address_length + 1 > sizeof(device_address)) {
-            //Serial.println("address size too long");
+#if defined(PARSERADDRESSDEBUG)
+            Serial.print("address size too long");
+#endif
             return false;
         }
         destination_address.bytes[destination_address_length++] = (uint8_t) number;
