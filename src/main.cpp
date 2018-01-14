@@ -107,7 +107,7 @@ const char* password = "...";
 ESP8266UDPSocket socket;
 #endif
 
-
+/*
 #if defined(PING)
 #define OWN_ADDRESS 127
 #define PONG_ADDRESS 0x03
@@ -116,7 +116,7 @@ uint8_t msg[] = {5, 'P', 'i', 'n', 'g'};
 #elif defined(PONG)
 #define OWN_ADDRESS 0x03
 #endif
-
+*/
 enum ArduinoSocketTesterStatus {
     STARTING,
     IDLE,
@@ -179,6 +179,8 @@ bool send_error();
 
 bool isReset(char *buffer);
 
+void printSerialBuffer();
+
 void setup() {
     Serial.begin(9600);
     Serial.print("ArduinoSocketTester VERSION ALPHA 0.01 Address ");
@@ -195,7 +197,7 @@ void setup() {
     if (!rh_driver.setFrequency(FREQUENCY)) {
         Serial.println("Failure set FREQUENCY");
     }
-    Serial.println("FREQUENCY");
+    // Serial.println("FREQUENCY");
 #endif
 
 #ifdef TX_POWER_PIN
@@ -208,7 +210,7 @@ void setup() {
     if(!rh_driver.setModemConfig(RH_RF95::MODEM_CONFIG_CHOICE)){
         Serial.println("Failure set MODEM_CONFIG_CHOICE");
     }
-    Serial.println("MODEM_CONFIG_CHOICE");
+    // Serial.println("MODEM_CONFIG_CHOICE");
 
     manager.setThisAddress(OWN_ADDRESS);
     socket.setManager(&manager);
@@ -245,7 +247,6 @@ void setup() {
 
     mqttSnMessageHandler.setLogger(&logger);
     mqttSnMessageHandler.setSocket(&socket);
-
     if (!mqttSnMessageHandler.begin()) {
         send_error();
         status = ERROR;
@@ -366,6 +367,7 @@ void loop() {
     }
 
     if (status == PARSE_FAILURE) {
+        //printSerialBuffer();
         Serial.print("FAILURE PARSE_FAILURE\n");
         resetSerialBuffer();
         receive_status = RECEIVE_NONE;
@@ -381,9 +383,24 @@ void loop() {
     }
     if (status == ERROR) {
         Serial.print("ERROR\n");
+#if defined(ESP8266)
+        ESP.restart();
+#else
+        Serial.print("ERROR RESET_NOT_SUPPORTED\n");
+#endif
         // TODO reset chip completely (including peripheral)
     }
 
+}
+
+void printSerialBuffer() {
+    if (lineReady) {
+        for (uint16_t i = 0; i < serialBufferCounter; i++) {
+            Serial.print(serialBuffer[i]);
+        }
+    }else{
+        Serial.print("lineNotReady");
+    }
 }
 
 bool isReset(char *buffer) {
